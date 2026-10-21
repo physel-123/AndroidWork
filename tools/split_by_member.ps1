@@ -85,7 +85,7 @@ $MEMBERS = @(
         )
         files  = @(
             @("domain\CheckInCalculator.kt", "连续天数、最长纪录、等级、月历排版（纯函数）"),
-            @("ui\screens\CheckInScreen.kt", "打卡页：统计、月历、热力图、记录管理")
+            @("ui\screens\CheckInScreen.kt", "打卡页：统计、月历、记录管理")
         )
         tests  = ,@(
             @("domain\CheckInCalculatorTest.kt", "打卡统计逻辑测试（8 个用例）")

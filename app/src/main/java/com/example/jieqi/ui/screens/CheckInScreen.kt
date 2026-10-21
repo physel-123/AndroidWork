@@ -63,7 +63,7 @@ import java.time.LocalDate
 /**
  * 打卡页：把“文化学习”变成看得见的坚持。
  *
- * 包含：连续打卡天数、月度日历、最近 30 天足迹、二十四节气点亮进度、
+ * 包含：连续打卡天数、月度日历、二十四节气点亮进度、
  * 打卡历史（可补填心情、可撤销），以及分享打卡卡片。
  */
 @Composable
@@ -282,48 +282,6 @@ fun CheckInScreen(onRequireLogin: () -> Unit = {}) {
                     }
                 }
             )
-        }
-
-        // ---------- 最近 30 天 ----------
-        item {
-            SectionHeader(title = "最近 30 天足迹", accent = accent)
-        }
-        item {
-            JieQiCard(modifier = Modifier.fillMaxWidth()) {
-                Column {
-                    val days = remember(today) { (29 downTo 0).map { today.minusDays(it.toLong()) } }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        days.chunked(10).forEach { chunk ->
-                            Column(
-                                modifier = Modifier.weight(1f),
-                                verticalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                chunk.forEach { date ->
-                                    val checked = checkedDates.contains(date)
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .aspectRatio(1f)
-                                            .clip(RoundedCornerShape(4.dp))
-                                            .background(
-                                                if (checked) accent else MaterialTheme.colorScheme.surfaceVariant
-                                            )
-                                    )
-                                }
-                            }
-                        }
-                    }
-                    Spacer(Modifier.height(10.dp))
-                    Text(
-                        text = "深色为已打卡，浅色为未打卡；共 ${days.count { checkedDates.contains(it) }}/30 天",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
         }
 
         // ---------- 打卡记录 ----------

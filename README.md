@@ -96,7 +96,6 @@ gradlew.bat :app:assembleRelease        # 生成 release APK
 ### 6. 打卡（习惯养成）
 - 连续打卡天数 / 累计天数 / 最长纪录 / 传习等级（7 级成长体系）
 - **月度打卡日历**：点击任意日期可补打卡或取消打卡，自动标记节气日
-- 最近 30 天足迹热力条
 - 二十四节气点亮进度（环形徽标，已点亮显示该节气主题色）
 - 打卡记录列表（含心情备注）、打卡卡片分享
 
@@ -125,7 +124,7 @@ gradlew.bat :app:assembleRelease        # 生成 release APK
 | 架构 | 单 Activity + Compose Navigation，Repository 模式，手写轻量 DI 容器 |
 | 本地存储 | Room 2.8.5（打卡/收藏/民俗三张表）+ DataStore Preferences（设置） |
 | 异步 | Kotlin Coroutines + Flow，`collectAsStateWithLifecycle` |
-| 绘图 | Compose `Canvas`（节气罗盘、中国地图、月历热力图），零图片资源 |
+| 绘图 | Compose `Canvas`（节气罗盘、中国地图、月历网格），零图片资源 |
 | 通知 | AlarmManager + NotificationCompat + BroadcastReceiver（含开机恢复） |
 | 测试 | JUnit4 单元测试（天文算法、打卡统计） |
 
