@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 仅保留主题需要的颜色；界面配色统一在 ui/theme/Color.kt 中以 Kotlin 常量定义 -->
+    <color name="ic_launcher_background">#FFF6EFE2</color>
+    <color name="rice">#FFF7F2E8</color>
+</resources>

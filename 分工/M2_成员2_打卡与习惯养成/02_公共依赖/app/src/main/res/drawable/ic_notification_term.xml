@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 通知小图标：单色白色，系统会按通知栏样式着色 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="#FFFFFFFF">
+    <!-- 太阳 -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M17,7m-3.2,0a3.2,3.2 0,1 1,6.4 0a3.2,3.2 0,1 1,-6.4 0" />
+    <!-- 山峦 -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M2,17.5L7.5,10l4,5.2L14.2,12l5.8,7.5H2z" />
+    <!-- 田垄 -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M2,19.5h20v1.6H2z" />
+</vector>
