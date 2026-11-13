@@ -2,6 +2,7 @@ package com.example.jieqi.data
 
 import android.content.Context
 import com.example.jieqi.data.db.JieQiDatabase
+import com.example.jieqi.data.remote.MysticRepository
 import com.example.jieqi.notify.ReminderScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -29,17 +30,20 @@ class AppContainer(val context: Context) {
 
     val favoriteRepository: FavoriteRepository by lazy { FavoriteRepository(database) }
 
-    val folkCustomRepository: FolkCustomRepository by lazy { FolkCustomRepository(database) }
+    val folkCustomRepository: FolkCustomRepository by lazy { FolkCustomRepository(database, session) }
 
     val userRepository: UserRepository by lazy { UserRepository(database, session) }
 
-    val socialRepository: SocialRepository by lazy { SocialRepository(database, session) }
+    val socialRepository: SocialRepository by lazy { SocialRepository(session) }
 
-    /** 启动时的初始化：播种内置内容 + 演示账号与动态 + 恢复每日提醒。 */
+    val mysticRepository: MysticRepository by lazy { MysticRepository(session = session) }
+
+    /** 启动时的初始化：播种内置内容 + 拉取社交数据 + 恢复每日提醒。 */
     fun warmUp() {
         appScope.launch {
             runCatching { folkCustomRepository.seedIfEmpty() }
-            runCatching { socialRepository.seedDemoContentIfNeeded() }
+            runCatching { socialRepository.refreshFeed() }
+            runCatching { folkCustomRepository.refreshContributions() }
             runCatching {
                 val reminder = settings.reminder.first()
                 ReminderScheduler.apply(context, reminder)

@@ -34,6 +34,7 @@ object JieQiRoutes {
     const val PROFILE = "profile"
     const val FAVORITES = "favorites"
     const val CREDITS = "credits"
+    const val MYSTIC = "mystic"
 
     const val ARG_TERM_INDEX = "termIndex"
     const val TERM_DETAIL = "term/{$ARG_TERM_INDEX}"

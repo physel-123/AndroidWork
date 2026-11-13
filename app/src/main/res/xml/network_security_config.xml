@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 允许对本项目后端服务器使用明文 HTTP（个人小项目，未配置 HTTPS） -->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">49.232.151.242</domain>
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">127.0.0.1</domain>
+    </domain-config>
+</network-security-config>

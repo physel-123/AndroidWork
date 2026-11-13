@@ -37,6 +37,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -88,6 +89,11 @@ fun FeedScreen(onRequireLogin: () -> Unit) {
     val posts by container.socialRepository.feed.collectAsStateWithLifecycle(initialValue = emptyList())
     val currentUser by container.userRepository.currentUser.collectAsStateWithLifecycle(initialValue = null)
     val memberCount by container.socialRepository.memberCount.collectAsStateWithLifecycle(initialValue = 0)
+
+    // 登录态变化时刷新动态（保证「我的动态」筛选与点赞状态准确）
+    LaunchedEffect(currentUser?.username) {
+        container.socialRepository.refreshFeed()
+    }
 
     val today = remember { LocalDateTime.now().toLocalDate() }
     val occurrence = remember { TermDateUtils.currentOccurrence(LocalDateTime.now()) }

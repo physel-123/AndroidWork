@@ -41,6 +41,7 @@ import com.example.jieqi.ui.screens.FolkMapScreen
 import com.example.jieqi.ui.screens.HomeScreen
 import com.example.jieqi.ui.screens.ImageCreditsScreen
 import com.example.jieqi.ui.screens.LoginScreen
+import com.example.jieqi.ui.screens.MysticScreen
 import com.example.jieqi.ui.screens.ProfileScreen
 import com.example.jieqi.ui.screens.TermDetailScreen
 import com.example.jieqi.ui.screens.TermListScreen
@@ -177,6 +178,7 @@ private fun AppContent(container: AppContainer) {
                     onOpenFavorites = { navController.navigate(JieQiRoutes.FAVORITES) },
                     onOpenTerm = { index -> navController.navigate(JieQiRoutes.termDetail(index)) },
                     onOpenCredits = { navController.navigate(JieQiRoutes.CREDITS) },
+                    onOpenMystic = { navController.navigate(JieQiRoutes.MYSTIC) },
                     onRequireLogin = { requireLogin() }
                 )
             }
@@ -198,6 +200,9 @@ private fun AppContent(container: AppContainer) {
             }
             composable(JieQiRoutes.CREDITS) {
                 ImageCreditsScreen(onBack = { navController.popBackStack() })
+            }
+            composable(JieQiRoutes.MYSTIC) {
+                MysticScreen(onBack = { navController.popBackStack() })
             }
         }
 

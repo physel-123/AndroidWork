@@ -97,6 +97,11 @@ dependencies {
 
     implementation("androidx.datastore:datastore-preferences:1.2.1")
 
+    // 网络请求（后端 FastAPI 接口）
+    implementation("com.squareup.retrofit2:retrofit:2.11.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.11.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+
     // 图片 / 动图 / 视频首帧加载（统一由 Coil 处理，静态图与 GIF 都能显示）
     // 版本固定 3.4.0：3.6.x / 3.5.0 分别要求 compileSdk 37 / 36，本工程使用 android-36 平台
     implementation("io.coil-kt.coil3:coil-compose:3.4.0")

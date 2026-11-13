@@ -1,12 +1,15 @@
 package com.example.jieqi.data
 
-import android.util.Base64
 import com.example.jieqi.data.db.JieQiDatabase
 import com.example.jieqi.data.db.UserEntity
+import com.example.jieqi.data.remote.ApiClient
+import com.example.jieqi.data.remote.JieQiApi
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import java.security.MessageDigest
-import java.security.SecureRandom
+import kotlinx.coroutines.withContext
+import retrofit2.HttpException
+import java.io.IOException
 
 /** 登录/注册结果。 */
 sealed interface AuthResult {
@@ -15,16 +18,18 @@ sealed interface AuthResult {
 }
 
 /**
- * 账号仓库：本地注册、登录、演示账号。
+ * 账号仓库：注册、登录走后端 FastAPI（JWT），并把用户镜像写入本地 Room。
  *
- * 安全说明（课程项目范围内的合理做法）：
- * - 密码不存明文，使用「随机盐 + SHA-256」摘要后存储；
- * - 盐由 [SecureRandom] 生成，每个用户独立；
- * - 真实产品应使用 PBKDF2/bcrypt 并配合服务端，这里做了简化。
+ * 迁移策略（「先只迁账号」档位）：
+ * - 注册/登录调用后端 /api/auth，密码校验在后端（bcrypt）；
+ * - 成功后把后端返回的用户信息同步写入本地 Room 镜像，
+ *   这样打卡广场、评论、点赞等仍依赖本地 UserEntity 的功能无需改动；
+ * - SessionStore 同时保存本地 userId 与后端 JWT token。
  */
 class UserRepository(
     private val db: JieQiDatabase,
-    private val session: SessionStore
+    private val session: SessionStore,
+    private val api: JieQiApi = ApiClient.api
 ) {
 
     private val dao = db.userDao()
@@ -51,35 +56,44 @@ class UserRepository(
             return AuthResult.Failure("账号只能包含中英文、数字和下划线")
         }
         if (password.length < 6) return AuthResult.Failure("密码至少 6 位")
-        if (dao.findByUsername(name) != null) return AuthResult.Failure("该账号已被注册")
 
-        val salt = randomSalt()
-        val user = UserEntity(
-            username = name,
-            nickname = nickname.trim().ifBlank { name },
-            avatarColor = (0..23).random(),
-            passwordHash = hash(password, salt),
-            salt = salt,
-            bio = "刚刚加入节气民俗"
-        )
-        val id = dao.insert(user)
-        if (id <= 0L) return AuthResult.Failure("注册失败，请换个账号试试")
-        val saved = dao.findById(id) ?: return AuthResult.Failure("注册失败")
-        session.login(id)
-        return AuthResult.Success(saved)
+        return try {
+            val resp = api.register(
+                com.example.jieqi.data.remote.RegisterRequest(
+                    username = name,
+                    password = password,
+                    nickname = nickname.trim()
+                )
+            )
+            // 写入本地镜像
+            val local = upsertLocalMirror(resp)
+            session.login(local.id, token = resp.token, username = resp.username)
+            AuthResult.Success(local)
+        } catch (e: HttpException) {
+            AuthResult.Failure(parseHttpError(e, "注册失败"))
+        } catch (e: IOException) {
+            AuthResult.Failure("无法连接服务器，请检查网络后重试")
+        } catch (e: Exception) {
+            AuthResult.Failure(e.message ?: "注册失败，请稍后重试")
+        }
     }
 
     suspend fun login(username: String, password: String): AuthResult {
-        val user = dao.findByUsername(username.trim())
-            ?: return AuthResult.Failure("账号不存在，请先注册")
-        if (user.passwordHash != hash(password, user.salt)) {
-            return AuthResult.Failure("密码不正确")
+        return try {
+            val resp = api.login(username.trim(), password)
+            val local = upsertLocalMirror(resp)
+            session.login(local.id, token = resp.token, username = resp.username)
+            AuthResult.Success(local)
+        } catch (e: HttpException) {
+            AuthResult.Failure(parseHttpError(e, "登录失败"))
+        } catch (e: IOException) {
+            AuthResult.Failure("无法连接服务器，请检查网络后重试")
+        } catch (e: Exception) {
+            AuthResult.Failure(e.message ?: "登录失败，请稍后重试")
         }
-        session.login(user.id)
-        return AuthResult.Success(user)
     }
 
-    /** 一键登录演示账号（用于课堂演示多人互动效果）。 */
+    /** 一键登录演示账号（演示账号已由后端播种）。 */
     suspend fun loginAsDemo(userId: Long): AuthResult {
         val user = dao.findById(userId) ?: return AuthResult.Failure("演示账号不存在")
         session.login(user.id)
@@ -87,12 +101,8 @@ class UserRepository(
     }
 
     /** 按账号名一键登录演示账号。 */
-    suspend fun loginAsDemoByUsername(username: String): AuthResult {
-        val user = dao.findByUsername(username)
-            ?: return AuthResult.Failure("演示账号尚未初始化，请稍后重试")
-        session.login(user.id)
-        return AuthResult.Success(user)
-    }
+    suspend fun loginAsDemoByUsername(username: String): AuthResult =
+        login(username, DEMO_PASSWORD)
 
     suspend fun logout() = session.logout()
 
@@ -112,21 +122,42 @@ class UserRepository(
     // 工具方法
     // ------------------------------------------------------------------
 
-    private fun randomSalt(): String {
-        val bytes = ByteArray(16)
-        SecureRandom().nextBytes(bytes)
-        return Base64.encodeToString(bytes, Base64.NO_WRAP)
+    /** 把后端返回的用户信息同步到本地 Room（已存在则复用，否则新建镜像）。 */
+    private suspend fun upsertLocalMirror(
+        resp: com.example.jieqi.data.remote.AuthResponse
+    ): UserEntity = withContext(Dispatchers.IO) {
+        // 已存在本地镜像（如本地演示账号）则直接复用，保持 authorId 稳定
+        dao.findByUsername(resp.username)?.let { return@withContext it }
+
+        val entity = UserEntity(
+            username = resp.username,
+            nickname = resp.nickname.ifBlank { resp.username },
+            avatarColor = resp.avatarColor,
+            passwordHash = "remote",  // 密码由后端校验，本地不再存
+            salt = "",
+            bio = resp.bio,
+            isDemo = resp.isDemo
+        )
+        val id = dao.insert(entity)
+        dao.findById(id) ?: throw IllegalStateException("写入本地镜像失败")
     }
 
-    private fun hash(password: String, salt: String): String {
-        val digest = MessageDigest.getInstance("SHA-256")
-        digest.update(salt.toByteArray(Charsets.UTF_8))
-        val result = digest.digest(password.toByteArray(Charsets.UTF_8))
-        return Base64.encodeToString(result, Base64.NO_WRAP)
+    /** 从 HttpException 提取后端 detail 错误信息。 */
+    private fun parseHttpError(e: HttpException, fallback: String): String {
+        return try {
+            val body = e.response()?.errorBody()?.string()
+            // 后端返回 {"detail": "..."}
+            val detail = body?.let {
+                Regex("\"detail\"\\s*:\\s*\"([^\"]+)\"").find(it)?.groupValues?.get(1)
+            }
+            detail ?: fallback
+        } catch (_: Exception) {
+            fallback
+        }
     }
 
     companion object {
-        /** 内置演示账号（密码统一为 123456，界面上可一键登录）。 */
+        /** 内置演示账号（密码统一为 123456，由后端播种，界面上可一键登录）。 */
         val DEMO_ACCOUNTS = listOf(
             DemoAccount("linxiaoman", "林小满", "在杭州读大二，喜欢拍节气里的花", 0),
             DemoAccount("ahe", "阿禾", "农学专业，跟着节气种地", 6),

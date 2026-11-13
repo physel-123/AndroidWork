@@ -1,9 +1,11 @@
 # 节气民俗 —— 传统民俗节气文化宣传 App
 
-> 课程：移动互联网应用开发技术　|　类型：文化传承内容型　|　平台：Android（Kotlin + Jetpack Compose）
+> 课程：移动互联网应用开发技术　|　类型：文化传承内容型　|　平台：Android（Kotlin + Jetpack Compose）＋ 后端（Python + FastAPI）
 
 一个可「每天打开一次」的二十四节气与地方民俗科普 App：每日节气知识推送、节气罗盘可视化、
 打卡与分享、地域民俗地图，把传统文化做成**可 daily 触达、可互动、有颜值**的产品。
+并在此基础上扩展了「神秘文化」板块（今日运势、灵签占卜、塔罗牌阵、手相/面相 AI 识读），
+后端采用 FastAPI + PostgreSQL + Docker 部署，多模态识别接入通义千问 Qwen-VL。
 
 ---
 
@@ -78,31 +80,31 @@ gradlew.bat :app:assembleRelease        # 生成 release APK
 - **节气讨论**：可对节气发表评论与回复
 - 收藏、分享（系统分享面板）
 
-### 4. 打卡广场（互动模块）
+### 4. 打卡广场（互动模块，已上后端）
 - **发布动态**：写正文、选心情标签、从该节气配画中挑一张作为配图
-- **信息流**：所有用户的打卡动态，支持「全部动态 / 我的动态」筛选
-- **点赞**：真实点赞记录（幂等，重复点击即取消）
-- **评论与回复**：一级评论 + 二级回复，可删除自己的评论
+- **信息流**：所有用户的打卡动态（存后端 PostgreSQL，多设备共享），支持「全部动态 / 我的动态」筛选
+- **点赞**：真实点赞记录（幂等，重复点击即取消），存后端
+- **评论与回复**：一级评论 + 二级回复，可删除自己的评论，存后端
 - **分享动态**：一键分享到系统分享面板
 - 顶部展示社区成员数与动态总数
 
-### 5. 账号体系（本地）
-- **注册 / 登录**：账号唯一校验，密码以「随机盐 + SHA-256」存储，不存明文
-- **登录态保持**：DataStore 保存会话，重启后自动登录
+### 5. 账号体系（后端 JWT）
+- **注册 / 登录**：账号数据接入云端后端（FastAPI），密码以 bcrypt 加盐哈希存储，绝不存明文
+- **登录态保持**：JWT token + 用户信息存 DataStore，重启后自动登录
 - **游客浏览**：可「先逛逛」不登录；打卡、点赞、评论、发布时会提示登录
 - **4 个课堂演示账号**：一键切换身份，用于现场演示多人评论与点赞效果（密码统一 `123456`）
 - 退出登录
 
-### 6. 打卡（习惯养成）
+### 6. 打卡（习惯养成，本地存储）
 - 连续打卡天数 / 累计天数 / 最长纪录 / 传习等级（7 级成长体系）
 - **月度打卡日历**：点击任意日期可补打卡或取消打卡，自动标记节气日
 - 二十四节气点亮进度（环形徽标，已点亮显示该节气主题色）
 - 打卡记录列表（含心情备注）、打卡卡片分享
 
-### 7. 民俗地图（地域民俗可视化）
+### 7. 民俗地图（地域民俗可视化，投稿已上后端）
 - **Canvas 手绘中国地图**：34 个省级轮廓 + 按经纬度投影的民俗打点，点击查看详情
 - 省份筛选、节气筛选（含“当前节气”快捷筛选）、关键词搜索
-- **民俗投稿**：用户可补充“我家的民俗”，按省份自动定位到地图（UGC 文化共建）
+- **民俗投稿**：用户可补充“我家的民俗”，按省份自动定位到地图（UGC 文化共建，存后端共享）
 
 ### 8. 我的（设置与数据）
 - 账号信息（头像、昵称、签名）、传习等级、八项统计
@@ -111,6 +113,14 @@ gradlew.bat :app:assembleRelease        # 生成 release APK
 - 数据管理：打卡记录导出为 CSV（复制到剪贴板）、清空本机数据
 - **图片来源与授权页**：列出全部配画的作者、年代、材质与藏品编号
 - 二十四节气文化小知识、关于本项目
+
+### 9. 神秘文化（云端 AI 趣味体验）
+- **今日运势**：选一个生肖（横 6 纵 2 排布），生成当日综合运势 + 四维度星评 + 幸运色/数字 + 宜忌
+- **灵签占卜**：64 签（覆盖综合/事业/财运/感情/学业/健康六向），真随机抽取，当天保持、再抽覆盖
+- **塔罗牌阵**：标准 78 张牌堆（22 大阿卡纳 + 56 小阿卡纳），抽三张观过去·现在·未来，正逆位解读
+- **手相识读**：上传手掌照片，Qwen-VL 多模态识别掌纹特征（手型/手指/感情线/生命线/智慧线/掌纹）
+- **面相解读**：上传面部照片，AI 识读五官特征（脸型/眉毛/眼睛/鼻子/嘴唇）
+- 隐私说明：照片仅用于本次分析、取得授权后上传、分析后不留存
 
 ---
 
@@ -122,7 +132,12 @@ gradlew.bat :app:assembleRelease        # 生成 release APK
 | --- | --- |
 | 语言 / UI | Kotlin 2.2.10 + Jetpack Compose（Material 3） |
 | 架构 | 单 Activity + Compose Navigation，Repository 模式，手写轻量 DI 容器 |
-| 本地存储 | Room 2.8.5（打卡/收藏/民俗三张表）+ DataStore Preferences（设置） |
+| 网络层 | Retrofit 2.11 + OkHttp + Gson（调后端 REST 接口） |
+| 后端 | Python + FastAPI + Uvicorn（见 `backend/` 目录，独立部署） |
+| 本地存储 | Room 2.8.5（打卡/收藏/用户镜像）+ DataStore Preferences（设置/会话） |
+| 云端存储 | PostgreSQL 16（Docker 容器，用户表 + 占卜记录 + 社交动态/评论/点赞/投稿） |
+| 认证 | JWT + bcrypt（后端签发，前端 DataStore 保存 token） |
+| 多模态 | 通义千问 Qwen-VL（qwen3.8-flash，DashScope API，手相/面相识别） |
 | 异步 | Kotlin Coroutines + Flow，`collectAsStateWithLifecycle` |
 | 绘图 | Compose `Canvas`（节气罗盘、中国地图、月历网格），零图片资源 |
 | 通知 | AlarmManager + NotificationCompat + BroadcastReceiver（含开机恢复） |
@@ -156,7 +171,11 @@ gradlew.bat :app:assembleRelease        # 生成 release APK
 > 由于节气间隔约 15.2 天，该精度足以保证用户看到的日期永远正确，
 > 也无需为 1900—2100 年维护任何日期表。
 
-### 3. 数据库设计（Room）
+### 3. 数据库设计（Room，本地）
+
+> 迁移后：**打卡（check_in）与收藏（favorite）保留在本地 Room**；
+> 账号、动态、评论、点赞、民俗投稿已上后端 PostgreSQL（见 3.1）。
+> Room 中的 `post`/`comment`/`like_record`/`folk_custom(用户投稿)` 表已不再由前端读写。
 
 ```
 check_in（打卡表）
@@ -173,14 +192,73 @@ favorite（收藏表）
   refId INTEGER
   createdAt INTEGER
 
-folk_custom（民俗表）
+folk_custom（民俗表，仅存内置数据）
   id INTEGER PRIMARY KEY AUTOINCREMENT
   title, description TEXT
   termName TEXT           -- 关联节气，可空表示全年民俗
   province, city TEXT
   latitude, longitude REAL-- 用于地图打点
-  isBuiltIn INTEGER       -- 内置数据 / 用户投稿
+  isBuiltIn INTEGER       -- 内置数据（用户投稿改存后端）
   createdAt INTEGER
+```
+
+### 3.1 后端数据库设计（PostgreSQL，云端）
+
+账号、神秘文化、以及社交数据（动态/评论/点赞/民俗投稿）存云端 PostgreSQL
+（`backend/app/models/entities.py`）：
+
+```
+users（用户表）
+  id SERIAL PRIMARY KEY
+  username TEXT UNIQUE     -- 登录名
+  nickname TEXT            -- 昵称
+  password_hash TEXT       -- bcrypt 哈希
+  bio TEXT                 -- 个性签名
+  avatar_color INTEGER     -- 头像颜色
+  is_demo BOOLEAN          -- 是否演示账号
+  created_at TIMESTAMP
+
+fortune_records（占卜/运势记录表）
+  id SERIAL PRIMARY KEY
+  username TEXT            -- 归属用户（未登录为 guest）
+  kind TEXT                -- sign / tarot / fortune / palm / face
+  seed_key TEXT            -- 唯一键：{username}|{kind}
+  result TEXT              -- JSON 结果字符串
+  created_at TIMESTAMP
+
+posts（打卡广场动态表）
+  id SERIAL PRIMARY KEY
+  author TEXT              -- 作者 username
+  author_name / author_color TEXT / INTEGER
+  term_index / term_name INTEGER / TEXT
+  content TEXT
+  image_asset / mood TEXT
+  like_count / comment_count INTEGER   -- 冗余计数
+  created_at_ms BIGINT     -- 毫秒时间戳
+
+comments（评论表，服务节气/民俗/动态三场景）
+  id SERIAL PRIMARY KEY
+  target_type TEXT         -- term / folk / post
+  target_id INTEGER        -- 目标 id
+  parent_id INTEGER        -- 0 为顶级评论
+  author / author_name / author_color ...
+  content TEXT
+  like_count INTEGER
+  created_at_ms BIGINT
+
+like_records（点赞表，target_type+target_id+username 唯一）
+  id SERIAL PRIMARY KEY
+  target_type / target_id TEXT / INTEGER
+  username TEXT
+  created_at_ms BIGINT
+
+folk_customs（民俗投稿表）
+  id SERIAL PRIMARY KEY
+  title / term_name / province / city / description TEXT
+  latitude / longitude DOUBLE PRECISION
+  contributor TEXT         -- 投稿者 username
+  contributor_name TEXT
+  created_at_ms BIGINT
 ```
 
 ### 4. 工程结构
@@ -192,12 +270,19 @@ app/src/main/java/com/example/jieqi/
 ├── data/
 │   ├── AppContainer.kt            轻量依赖容器（手写 DI）
 │   ├── SettingsStore.kt           DataStore 设置存储
+│   ├── SessionStore.kt            DataStore 会话存储（token + 用户 id）
 │   ├── Repositories.kt            打卡 / 收藏仓库
+│   ├── UserRepository.kt          用户仓库（走后端注册/登录 + 本地镜像）
 │   ├── FolkCustomRepository.kt    民俗仓库（含内置数据播种）
 │   ├── content/
 │   │   ├── SolarTermContent.kt    24 节气完整内容库（三候/习俗/食俗/养生/诗话）
 │   │   ├── FolkCustomContent.kt   34 条各地民俗内置数据
 │   │   └── DailyContentFactory.kt 每日一句/一俗/一食、分享文案生成
+│   ├── remote/                    网络层（调后端 FastAPI）
+│   │   ├── Models.kt              API 数据模型（Auth/Fortune/Sign/Tarot/Vision）
+│   │   ├── JieQiApi.kt            Retrofit 接口定义
+│   │   ├── ApiClient.kt           Retrofit 单例（BASE_URL 指向后端）
+│   │   └── MysticRepository.kt    神秘文化仓库（运势/占卜/手相/面相）
 │   └── db/                        Room 实体、DAO、数据库
 ├── domain/
 │   ├── SolarTermCalculator.kt     VSOP87D 天文算法（核心）
@@ -208,12 +293,24 @@ app/src/main/java/com/example/jieqi/
 │   ├── theme/                     配色（24 节气主题色）、字体、Material3 主题
 │   ├── components/                通用组件、节气罗盘、中国地图画布
 │   ├── navigation/                路由表与底部导航
-│   └── screens/                   首页 / 节气 / 详情 / 打卡 / 地图 / 我的
+│   └── screens/                   首页 / 节气 / 详情 / 打卡 / 地图 / 我的 / 神秘文化
 └── util/ShareUtils.kt             系统分享
 
 app/src/test/java/com/example/jieqi/domain/
 ├── SolarTermCalculatorTest.kt     天文算法精度测试（含 2024 全年公布值比对）
 └── CheckInCalculatorTest.kt       打卡统计逻辑测试
+
+backend/                           Python + FastAPI 后端（独立部署到云服务器）
+├── app/
+│   ├── main.py                    FastAPI 入口（lifespan 自动建表 + 播种演示账号）
+│   ├── core/                      config / database / security（JWT + bcrypt）
+│   ├── models/entities.py         User + FortuneRecord ORM 模型
+│   ├── routers/                   auth / fortune / vision 路由
+│   ├── services/                  fortune / divination / vision / seed 服务
+│   └── data/                      运势 / 占卜 / 手相面相语料库
+├── requirements.txt               dashscope / fastapi / sqlalchemy / asyncpg / bcrypt
+├── Dockerfile
+└── docker-compose.yml             backend + postgres 两容器编排
 ```
 
 ### 5. 涉众分析与功能映射
@@ -326,4 +423,61 @@ AGP 9.x 已内置 Kotlin 支持，工程中**不能**再手动 `apply` `org.jetb
 - 民俗条目的经纬度为城市中心近似坐标，用于地图打点示意。
 - 中国地图为**风格化手绘轮廓**（`ui/components/FolkMapCanvas.kt` 中以归一化坐标定义），
   用于数据分布示意，不作为测绘用途，因此工程内不含任何地图 SDK 与 GeoJSON 资源，完全离线可运行。
-- 除 AndroidX 官方库与 Coil（图片加载）外无第三方依赖，无网络请求，无隐私数据采集。
+- 除 AndroidX 官方库与 Coil（图片加载）外，前端新增 Retrofit/OkHttp/Gson（网络请求，调后端）。
+- 后端提供账号、占卜、多模态识别与社交服务，需联网访问（后端地址见 `data/remote/Models.kt` 的 `ApiConfig.BASE_URL`）。
+- **离线可用**：节气内容浏览、打卡、收藏、节气罗盘、民俗地图（内置数据）可完全离线运行；
+  **需联网**：账号登录、神秘文化板块、打卡广场动态/评论/点赞、民俗投稿。
+
+---
+
+## 七、后端部署说明（可选，课程演示可不部署）
+
+后端独立于 App，是一个 FastAPI 服务，部署在云服务器 Docker 容器中，通过 HTTP 接口供 App 调用。
+
+### 1. 后端接口
+
+| 接口 | 方法 | 说明 |
+| --- | --- | --- |
+| `/api/auth/register` | POST | 注册（返回 JWT + 用户信息） |
+| `/api/auth/login` | POST | 登录（OAuth2 表单） |
+| `/api/auth/me` | GET | 获取当前用户 |
+| `/api/fortune` | GET | 今日运势（`?zodiac=龙`） |
+| `/api/divination/sign` | GET | 抽灵签（`?username=xxx`） |
+| `/api/divination/sign/today` | GET | 当天已抽灵签 |
+| `/api/divination/tarot` | GET | 抽塔罗（`?username=xxx&count=3`） |
+| `/api/divination/tarot/today` | GET | 当天已抽塔罗 |
+| `/api/palm/analyze` | POST | 手相识别（multipart 上传图片） |
+| `/api/face/analyze` | POST | 面相识别（multipart 上传图片） |
+| `/api/social/posts` | GET/POST | 动态列表 / 发布动态 |
+| `/api/social/posts/{id}` | DELETE | 删除动态 |
+| `/api/social/comments` | GET/POST | 评论列表 / 发表评论 |
+| `/api/social/comments/count` | GET | 评论数 |
+| `/api/social/comments/{id}` | DELETE | 删除评论 |
+| `/api/social/like` | GET/POST | 查询 / 切换点赞 |
+| `/api/social/member_count` | GET | 社区成员数 |
+| `/api/social/folk_customs` | GET/POST | 民俗投稿列表 / 投稿 |
+| `/api/social/folk_customs/{id}` | DELETE | 删除投稿 |
+
+### 2. 部署步骤
+
+```bash
+# 服务器上（需 Docker + Docker Compose）
+cd backend
+docker compose up -d --build
+```
+
+- 环境变量见 `backend/.env`（数据库密码、SECRET_KEY、DASHSCOPE_API_KEY）
+- 数据库：PostgreSQL 16 容器，数据持久化到 Docker volume `pgdata`
+- 多模态识别需在阿里云百炼开通 `qwen3.8-flash` 模型并配置 `DASHSCOPE_API_KEY`
+
+### 3. 前端如何切换后端地址
+
+修改 `app/src/main/java/com/example/jieqi/data/remote/Models.kt` 中的：
+
+```kotlin
+object ApiConfig {
+    const val BASE_URL = "http://你的服务器:8001/"
+}
+```
+
+> 由于后端使用明文 HTTP，工程已通过 `res/xml/network_security_config.xml` 放行。

@@ -29,6 +29,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -75,6 +76,7 @@ fun FolkMapScreen(onRequireLogin: () -> Unit = {}) {
     val customs by container.folkCustomRepository.all.collectAsStateWithLifecycle(
         initialValue = emptyList()
     )
+    val currentUser by container.userRepository.currentUser.collectAsStateWithLifecycle(initialValue = null)
     val today = remember { LocalDate.now() }
     val currentTerm = remember(today) { TermDateUtils.currentOccurrence(today) }
 
@@ -83,6 +85,9 @@ fun FolkMapScreen(onRequireLogin: () -> Unit = {}) {
     var termFilter by remember { mutableStateOf<String?>(null) }
     var selectedId by remember { mutableStateOf<Long?>(null) }
     var showAddDialog by remember { mutableStateOf(false) }
+
+    // 进入页面时拉取后端用户投稿
+    LaunchedEffect(Unit) { container.folkCustomRepository.refreshContributions() }
 
     val provinces = remember(customs) { customs.map { it.province }.distinct().sorted() }
 
@@ -140,7 +145,9 @@ fun FolkMapScreen(onRequireLogin: () -> Unit = {}) {
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     color = MaterialTheme.colorScheme.primaryContainer,
-                    modifier = Modifier.clickable { showAddDialog = true }
+                    modifier = Modifier.clickable {
+                        if (currentUser == null) onRequireLogin() else showAddDialog = true
+                    }
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),

@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Bookmarks
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Edit
@@ -79,6 +80,7 @@ fun ProfileScreen(
     onOpenFavorites: () -> Unit,
     onOpenTerm: (Int) -> Unit,
     onOpenCredits: () -> Unit = {},
+    onOpenMystic: () -> Unit = {},
     onRequireLogin: () -> Unit = {}
 ) {
     val container = LocalAppContainer.current
@@ -103,12 +105,12 @@ fun ProfileScreen(
     val currentUser by container.userRepository.currentUser.collectAsStateWithLifecycle(initialValue = null)
     val loggedIn by container.userRepository.isLoggedIn.collectAsStateWithLifecycle(initialValue = false)
     val myPostCount by remember(currentUser?.id) {
-        currentUser?.let { container.socialRepository.postCountOfAuthor(it.id) }
-            ?: kotlinx.coroutines.flow.flowOf(0)
+        if (currentUser != null) container.socialRepository.postCountOfAuthor()
+        else kotlinx.coroutines.flow.flowOf(0)
     }.collectAsStateWithLifecycle(initialValue = 0)
     val likedCount by remember(currentUser?.id) {
-        currentUser?.let { container.socialRepository.likesGiven(it.id) }
-            ?: kotlinx.coroutines.flow.flowOf(0)
+        if (currentUser != null) container.socialRepository.likesGiven()
+        else kotlinx.coroutines.flow.flowOf(0)
     }.collectAsStateWithLifecycle(initialValue = 0)
 
     LazyColumn(
@@ -238,6 +240,16 @@ fun ProfileScreen(
                 title = "我的收藏",
                 subtitle = "已收藏 ${favorites.size} 条内容",
                 onClick = onOpenFavorites
+            )
+        }
+
+        // ---------- 神秘文化 ----------
+        item {
+            SettingRow(
+                icon = Icons.Filled.AutoAwesome,
+                title = "神秘文化",
+                subtitle = "今日运势 · 灵签 · 塔罗 · 手相识读",
+                onClick = onOpenMystic
             )
         }
 
@@ -372,7 +384,6 @@ fun ProfileScreen(
                 onClick = {
                     scope.launch {
                         container.checkInRepository.clearAll()
-                        container.folkCustomRepository.clearUserContributions()
                         snackbar.showSnackbar("已清空本机打卡数据")
                     }
                 }

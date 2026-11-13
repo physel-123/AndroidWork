@@ -1,0 +1,34 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: jieqi-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: jieqi
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-jieqi_password}
+      POSTGRES_DB: jieqi
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jieqi"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build: .
+    container_name: jieqi-backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+asyncpg://jieqi:${POSTGRES_PASSWORD:-jieqi_password}@db:5432/jieqi
+      SECRET_KEY: ${SECRET_KEY:-change-me-to-a-random-secret}
+      DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:-}
+    ports:
+      - "8001:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c", "until getent hosts db > /dev/null 2>&1; do echo '等待 db 可解析...'; sleep 2; done; echo 'db 已就绪，启动应用'; exec uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+
+volumes:
+  pgdata:

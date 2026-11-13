@@ -360,7 +360,7 @@ fun LoginScreen(
 
             Spacer(Modifier.height(24.dp))
             Text(
-                text = "数据仅保存在本机，不会上传到任何服务器",
+                text = "账号数据已接入云端，登录后可在多设备同步",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
