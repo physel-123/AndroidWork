@@ -193,7 +193,7 @@ def build_poster():
         x0 = M + i * (sw + 14)
         d.rounded_rectangle((x0, y, x0 + sw, y + sh), radius=12,
                             fill=(238, 232, 222), outline=(200, 190, 176), width=2)
-        p = os.path.join(r"E:\AndroidWork", fn)
+        p = os.path.join(IMG, "screens", fn)
         if os.path.exists(p):
             im = Image.open(p).convert("RGB")
             r = min((sw - 16) / im.width, (sh - 46) / im.height)
