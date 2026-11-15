@@ -37,8 +37,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.jieqi.data.content.DailyContentFactory
+import com.example.jieqi.data.content.Artwork
 import com.example.jieqi.data.content.ArtworkLibrary
+import com.example.jieqi.domain.CheckInStats
 import com.example.jieqi.domain.TermDateUtils
+import com.example.jieqi.domain.TermOccurrence
 import com.example.jieqi.ui.LocalAppContainer
 import com.example.jieqi.ui.LocalSnackbarHostState
 import com.example.jieqi.ui.components.ArtworkFullScreen
@@ -79,7 +82,7 @@ fun HomeScreen(
     // 这样“当前节气”与“下一个节气”不会出现同一个节气
     val occurrence = remember { TermDateUtils.currentOccurrence(LocalDateTime.now()) }
     val next = remember { TermDateUtils.nextOccurrence(today, LocalTime.now()) }
-    val accent = occurrence.term.color
+    val greeting = remember { DailyContentFactory.greeting(LocalTime.now().hour) }
 
     var justCheckedIn by remember { mutableStateOf(false) }
 
@@ -93,7 +96,7 @@ fun HomeScreen(
     val checkedInToday by checkedInTodayFlow.collectAsStateWithLifecycle(initialValue = false)
     val isCheckedIn = checkedInToday || justCheckedIn
     val loggedIn by container.userRepository.isLoggedIn.collectAsStateWithLifecycle(initialValue = false)
-    var zoomArtwork by remember { mutableStateOf<com.example.jieqi.data.content.Artwork?>(null) }
+    var zoomArtwork by remember { mutableStateOf<Artwork?>(null) }
 
     /** 打卡：未登录先去登录。 */
     fun doCheckIn(note: String? = null) {
@@ -110,9 +113,53 @@ fun HomeScreen(
         }
     }
 
+    HomeContent(
+        occurrence = occurrence,
+        next = next,
+        today = today,
+        greeting = greeting,
+        stats = stats,
+        favoriteCount = favoriteCount,
+        customCount = customCount.size,
+        isCheckedIn = isCheckedIn,
+        zoomArtwork = zoomArtwork,
+        onCheckIn = { doCheckIn() },
+        onOpenTerm = onOpenTerm,
+        onOpenCheckIn = onOpenCheckIn,
+        onOpenMap = onOpenMap,
+        onShare = { ShareUtils.shareText(context, DailyContentFactory.shareTermText(next)) },
+        onZoomArtwork = { zoomArtwork = it }
+    )
+}
+
+/**
+ * 首页的无状态版本：所有数据由参数传入，交互通过回调抛出。
+ *
+ * 这样 Compose Preview 可以直接渲染本页
+ * （预览环境无法构造 [com.example.jieqi.data.AppContainer]）。
+ */
+@Composable
+fun HomeContent(
+    occurrence: TermOccurrence,
+    next: TermOccurrence,
+    today: LocalDate = LocalDate.now(),
+    greeting: String = "",
+    stats: CheckInStats = CheckInStats(),
+    favoriteCount: Int = 0,
+    customCount: Int = 0,
+    isCheckedIn: Boolean = false,
+    zoomArtwork: Artwork? = null,
+    onCheckIn: () -> Unit = {},
+    onOpenTerm: (Int) -> Unit = {},
+    onOpenCheckIn: () -> Unit = {},
+    onOpenMap: () -> Unit = {},
+    onShare: () -> Unit = {},
+    onZoomArtwork: (Artwork?) -> Unit = {}
+) {
+    val accent = occurrence.term.color
+
     val customToday = remember(today) { DailyContentFactory.dailyCustom(occurrence, today) }
     val foodToday = remember(today) { DailyContentFactory.dailyFood(occurrence, today) }
-    val greeting = remember { DailyContentFactory.greeting(LocalTime.now().hour) }
     val artworks = remember(occurrence.index) { ArtworkLibrary.of(occurrence.index) }
 
     LazyColumn(
@@ -143,12 +190,7 @@ fun HomeScreen(
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     color = accent.copy(alpha = 0.12f),
-                    modifier = Modifier.clickable {
-                        ShareUtils.shareText(
-                            context,
-                            DailyContentFactory.shareTermText(next)
-                        )
-                    }
+                    modifier = Modifier.clickable { onShare() }
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
@@ -278,7 +320,7 @@ fun HomeScreen(
             item {
                 ArtworkGallery(
                     artworks = artworks,
-                    onZoom = { zoomArtwork = it }
+                    onZoom = { onZoomArtwork(it) }
                 )
             }
         }
@@ -323,7 +365,7 @@ fun HomeScreen(
                             color = Color.White,
                             modifier = Modifier
                                 .weight(1f)
-                                .clickable { doCheckIn() }
+                                .clickable { onCheckIn() }
                         ) {
                             Text(
                                 text = if (isCheckedIn) "今日已打卡" else "立即打卡",
@@ -471,7 +513,7 @@ fun HomeScreen(
                         StatCell(value = "${stats.total}", label = "累计打卡", accent = accent)
                         StatCell(value = "${stats.visitedTerms}/24", label = "点亮节气", accent = accent)
                         StatCell(value = "$favoriteCount", label = "收藏", accent = accent)
-                        StatCell(value = "${customCount.size}", label = "民俗条目", accent = accent)
+                        StatCell(value = "$customCount", label = "民俗条目", accent = accent)
                     }
                     Spacer(Modifier.height(14.dp))
                     ThinProgressBar(progress = stats.visitedTerms / 24f, color = accent)
@@ -499,7 +541,7 @@ fun HomeScreen(
 
     // ---------- 全屏看图 ----------
     zoomArtwork?.let { artwork ->
-        ArtworkFullScreen(artwork = artwork, onDismiss = { zoomArtwork = null })
+        ArtworkFullScreen(artwork = artwork, onDismiss = { onZoomArtwork(null) })
     }
 }
 

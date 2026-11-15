@@ -63,6 +63,28 @@ fun TermListScreen(
     onBack: (() -> Unit)? = null
 ) {
     val container = LocalAppContainer.current
+    val favorites by container.favoriteRepository.all.collectAsStateWithLifecycle(initialValue = emptyList())
+    val favoriteNames = remember(favorites) { favorites.map { it.title } }
+
+    TermListContent(
+        favoriteNames = favoriteNames,
+        onOpenTerm = onOpenTerm,
+        favoritesOnly = favoritesOnly,
+        onBack = onBack
+    )
+}
+
+/**
+ * 节气列表页的无状态版本：收藏数据由 [favoriteNames] 传入，
+ * 其余内容全部来自静态节气库，因此可被 Compose Preview 直接渲染。
+ */
+@Composable
+fun TermListContent(
+    favoriteNames: List<String> = emptyList(),
+    onOpenTerm: (Int) -> Unit = {},
+    favoritesOnly: Boolean = false,
+    onBack: (() -> Unit)? = null
+) {
     val today = remember { LocalDate.now() }
     val currentIndex = remember { TermDateUtils.currentOccurrence(today).index }
 
@@ -70,10 +92,8 @@ fun TermListScreen(
     var season by remember { mutableStateOf<Season?>(null) }
     var wheelExpanded by remember { mutableStateOf(true) }
 
-    val favorites by container.favoriteRepository.all.collectAsStateWithLifecycle(initialValue = emptyList())
-
-    val favoriteTerms: List<SolarTerm> = remember(favorites) {
-        favorites.mapNotNull { SolarTermContent.byName(it.title) }
+    val favoriteTerms: List<SolarTerm> = remember(favoriteNames) {
+        favoriteNames.mapNotNull { SolarTermContent.byName(it) }
     }
 
     val displayTerms: List<SolarTerm> = remember(keyword, season, favoritesOnly, favoriteTerms) {

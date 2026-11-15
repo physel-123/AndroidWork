@@ -41,10 +41,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.jieqi.data.content.DailyContentFactory
+import com.example.jieqi.data.content.Artwork
 import com.example.jieqi.data.content.ArtworkLibrary
+import com.example.jieqi.data.content.SolarTerm
 import com.example.jieqi.data.content.SolarTermContent
 import com.example.jieqi.data.db.FolkCustomEntity
 import com.example.jieqi.domain.TermDateUtils
+import com.example.jieqi.domain.TermOccurrence
 import com.example.jieqi.ui.LocalAppContainer
 import com.example.jieqi.ui.LocalSnackbarHostState
 import com.example.jieqi.ui.components.ArtworkFullScreen
@@ -95,15 +98,60 @@ fun TermDetailScreen(
     val relatedCustoms = remember(folkCustoms, term) {
         folkCustoms.filter { it.termName == null || it.termName == term?.name }
     }
-    var zoomArtwork by remember { mutableStateOf<com.example.jieqi.data.content.Artwork?>(null) }
 
     if (term == null) {
         EmptyState(text = "未找到该节气")
         return
     }
 
+    TermDetailContent(
+        term = term,
+        occurrence = occurrence,
+        isFavorite = isFavorite,
+        relatedCustoms = relatedCustoms,
+        onBack = onBack,
+        onToggleFavorite = {
+            scope.launch {
+                val added = container.favoriteRepository.toggleTerm(term)
+                snackbar.showSnackbar(if (added) "已收藏《${term.name}》" else "已取消收藏")
+            }
+        },
+        onShare = {
+            ShareUtils.shareText(context, DailyContentFactory.shareTermText(occurrence))
+        },
+        onOpenFolkMap = onOpenFolkMap,
+        commentSlot = {
+            CommentSection(
+                type = com.example.jieqi.data.TargetType.TERM,
+                targetId = termIndex.toLong(),
+                title = "评论",
+                onRequireLogin = onRequireLogin
+            )
+        }
+    )
+}
+
+/**
+ * 节气详情页的无状态版本：节气数据、收藏状态与民俗列表都由参数传入。
+ *
+ * [commentSlot] 用于注入评论区（它依赖数据层），预览时可传空实现。
+ */
+@Composable
+fun TermDetailContent(
+    term: SolarTerm,
+    occurrence: TermOccurrence,
+    isFavorite: Boolean = false,
+    relatedCustoms: List<FolkCustomEntity> = emptyList(),
+    onBack: () -> Unit = {},
+    onToggleFavorite: () -> Unit = {},
+    onShare: () -> Unit = {},
+    onOpenFolkMap: () -> Unit = {},
+    commentSlot: (@Composable () -> Unit)? = null
+) {
+    var zoomArtwork by remember { mutableStateOf<Artwork?>(null) }
+
     val accent = term.color
-    val artworks = remember(termIndex) { ArtworkLibrary.of(termIndex) }
+    val artworks = remember(term.index) { ArtworkLibrary.of(term.index) }
 
     LazyColumn(
         modifier = Modifier
@@ -122,21 +170,14 @@ fun TermDetailScreen(
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
                 }
                 Spacer(Modifier.weight(1f))
-                IconButton(onClick = {
-                    scope.launch {
-                        val added = container.favoriteRepository.toggleTerm(term)
-                        snackbar.showSnackbar(if (added) "已收藏《${term.name}》" else "已取消收藏")
-                    }
-                }) {
+                IconButton(onClick = onToggleFavorite) {
                     Icon(
                         imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                         contentDescription = "收藏",
                         tint = if (isFavorite) accent else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                IconButton(onClick = {
-                    ShareUtils.shareText(context, DailyContentFactory.shareTermText(occurrence))
-                }) {
+                IconButton(onClick = onShare) {
                     Icon(Icons.Filled.Share, contentDescription = "分享")
                 }
             }
@@ -327,21 +368,18 @@ fun TermDetailScreen(
         }
 
         // ---------- 互动区 ----------
-        item {
-            SectionHeader(
-                title = "节气讨论",
-                subtitle = "说说你那里的${term.name}",
-                accent = accent
-            )
-        }
-        item {
-            JieQiCard(modifier = Modifier.fillMaxWidth()) {
-                CommentSection(
-                    type = com.example.jieqi.data.TargetType.TERM,
-                    targetId = termIndex.toLong(),
-                    title = "评论",
-                    onRequireLogin = onRequireLogin
+        if (commentSlot != null) {
+            item {
+                SectionHeader(
+                    title = "节气讨论",
+                    subtitle = "说说你那里的${term.name}",
+                    accent = accent
                 )
+            }
+            item {
+                JieQiCard(modifier = Modifier.fillMaxWidth()) {
+                    commentSlot()
+                }
             }
         }
     }

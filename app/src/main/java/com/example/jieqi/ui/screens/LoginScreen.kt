@@ -50,6 +50,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.jieqi.data.AuthResult
+import com.example.jieqi.data.DemoAccount
 import com.example.jieqi.data.UserRepository
 import com.example.jieqi.ui.LocalAppContainer
 import com.example.jieqi.ui.LocalSnackbarHostState
@@ -79,34 +80,72 @@ fun LoginScreen(
     val snackbar = LocalSnackbarHostState.current
     val scope = rememberCoroutineScope()
 
-    var isRegister by remember { mutableStateOf(false) }
-    var username by remember { mutableStateOf("") }
-    var nickname by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) }
-    var errorText by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(false) }
+    var errorText by remember { mutableStateOf<String?>(null) }
 
-    fun submit() {
+    /** 统一处理登录 / 注册 / 演示登录的结果与提示。 */
+    fun runAuth(successText: (String) -> String, action: suspend () -> AuthResult) {
         if (loading) return
         loading = true
         errorText = null
         scope.launch {
-            val result = if (isRegister) {
-                container.userRepository.register(username, nickname, password)
-            } else {
-                container.userRepository.login(username, password)
-            }
+            val result = action()
             loading = false
             when (result) {
                 is AuthResult.Success -> {
-                    snackbar.showSnackbar("欢迎，${result.user.nickname}")
+                    snackbar.showSnackbar(successText(result.user.nickname))
                     onLoggedIn()
                 }
 
                 is AuthResult.Failure -> errorText = result.message
             }
         }
+    }
+
+    LoginContent(
+        loading = loading,
+        errorText = errorText,
+        onErrorClear = { errorText = null },
+        onLogin = { account, pwd ->
+            runAuth({ "欢迎，$it" }) { container.userRepository.login(account, pwd) }
+        },
+        onRegister = { account, nick, pwd ->
+            runAuth({ "欢迎，$it" }) { container.userRepository.register(account, nick, pwd) }
+        },
+        onDemoLogin = { account ->
+            runAuth({ "已切换为 $it" }) {
+                container.userRepository.loginAsDemoByUsername(account.username)
+            }
+        },
+        onSkip = onSkip
+    )
+}
+
+/**
+ * 登录页的无状态版本：持有表单状态，数据操作通过回调交给上层。
+ *
+ * 拆出来的目的是让 Compose Preview 能直接渲染本页
+ * （预览环境无法构造 [com.example.jieqi.data.AppContainer]）。
+ */
+@Composable
+fun LoginContent(
+    loading: Boolean = false,
+    errorText: String? = null,
+    onErrorClear: () -> Unit = {},
+    onLogin: (account: String, password: String) -> Unit = { _, _ -> },
+    onRegister: (account: String, nickname: String, password: String) -> Unit = { _, _, _ -> },
+    onDemoLogin: (DemoAccount) -> Unit = {},
+    onSkip: () -> Unit = {}
+) {
+    var isRegister by remember { mutableStateOf(false) }
+    var username by remember { mutableStateOf("") }
+    var nickname by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
+
+    fun submit() {
+        if (loading) return
+        if (isRegister) onRegister(username, nickname, password) else onLogin(username, password)
     }
 
     Box(
@@ -186,7 +225,7 @@ fun LoginScreen(
                     Surface(
                         modifier = Modifier
                             .weight(1f)
-                            .clickable { isRegister = register; errorText = null },
+                            .clickable { isRegister = register; onErrorClear() },
                         shape = RoundedCornerShape(11.dp),
                         color = if (selected) MaterialTheme.colorScheme.surface
                         else Color.Transparent
@@ -208,7 +247,7 @@ fun LoginScreen(
             // ---------- 表单 ----------
             OutlinedTextField(
                 value = username,
-                onValueChange = { username = it; errorText = null },
+                onValueChange = { username = it; onErrorClear() },
                 label = { Text("账号") },
                 leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null) },
                 singleLine = true,
@@ -233,7 +272,7 @@ fun LoginScreen(
             Spacer(Modifier.height(12.dp))
             OutlinedTextField(
                 value = password,
-                onValueChange = { password = it; errorText = null },
+                onValueChange = { password = it; onErrorClear() },
                 label = { Text(if (isRegister) "密码（至少 6 位）" else "密码") },
                 leadingIcon = { Icon(Icons.Filled.Lock, contentDescription = null) },
                 trailingIcon = {
@@ -314,19 +353,7 @@ fun LoginScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(12.dp))
-                                .clickable {
-                                    scope.launch {
-                                        when (val r =
-                                            container.userRepository.loginAsDemoByUsername(account.username)) {
-                                            is AuthResult.Success -> {
-                                                snackbar.showSnackbar("已切换为 ${r.user.nickname}")
-                                                onLoggedIn()
-                                            }
-
-                                            is AuthResult.Failure -> errorText = r.message
-                                        }
-                                    }
-                                }
+                                .clickable { onDemoLogin(account) }
                                 .padding(vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {

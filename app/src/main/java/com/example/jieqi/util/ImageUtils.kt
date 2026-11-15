@@ -16,6 +16,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -42,6 +43,10 @@ fun assetImageUrl(path: String): String =
 /**
  * 节气配图。
  *
+ * 在 Compose Preview 中（[LocalInspectionMode] 为 true）不启动图片加载器，
+ * 直接画一块同尺寸的底色占位：预览进程没有真实的 Context 与 Coil 缓存，
+ * 强行走一遍加载只会得到空白或异常。
+ *
  * @param path assets 相对路径，如 `images/term01_37145.jpg`
  */
 @Composable
@@ -51,6 +56,12 @@ fun AssetImage(
     modifier: Modifier = Modifier,
     contentScale: ContentScale = ContentScale.Crop
 ) {
+    if (LocalInspectionMode.current) {
+        Box(
+            modifier = modifier.background(MaterialTheme.colorScheme.surfaceVariant)
+        )
+        return
+    }
     val context = LocalContext.current
     AsyncImage(
         model = ImageRequest.Builder(context)
